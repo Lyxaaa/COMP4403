@@ -1,0 +1,494 @@
+
+<!-- saved from url=(0133)https://learn.uq.edu.au/bbcswebdav/pid-6585336-dt-content-rid-36091159_1/courses/COMP4403S_7120_21405/publicweb/2021-assignment3.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>A3: COMP4403 Assignment 3 - Using Java-CUP and JFlex</title>
+</head>
+
+<body>
+<link type="text/css" rel="stylesheet" href="./A3_ COMP4403 Assignment 3 - Using Java-CUP and JFlex_files/style.css">
+
+
+<p>
+Last updated: <lastupdated>Mon May 10 09:08:14 AEST 2021</lastupdated>.
+
+</p><center>
+<h1>COMP4403/COMP7402 - Compilers and Interpreters<br>Assignment 3</h1>
+<h2>Due date: 15:00 Tuesday 25 May 2021 </h2>
+</center>
+<hr>
+<p>
+This is an individual assignment which involves
+modifying the assignment 3 compiler for the language PL0 to add 
+named value and reference parameters, with defaults.
+I'd suggest adding value parameters first,
+and then default parameter expressions,
+and then add reference parameters.
+
+</p><h1>Assignment Compiler files</h1>
+
+All sources for the assignment PL0 compiler are available as a3.zip (below). 
+Please be sure to use the version for this assignment and not the one used for the tutorials or another assignment. 
+There are differences (like the lexical tokens you need for this assignment are only defined in this version).
+Note that the symbol table Scope and SymEntry and Type implementations have been extended already
+to provide support for procedure parameters.
+<ul>
+  <li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6585336-dt-content-rid-36091159_1/courses/COMP4403S_7120_21405/publicweb/assignments/a3.zip">a3.zip</a> 
+  Save this .zip file and follow the instructions for setting up a compiler project in IntelliJ
+  </li><li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6585336-dt-content-rid-36091159_1/courses/COMP4403S_7120_21405/publicweb/compiler.html">Setting up and running PL0 in IntellliJ</a> 
+  </li><li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6585336-dt-content-rid-36091159_1/courses/COMP4403S_7120_21405/publicweb/a3-README.html">Brief documentation on assignment 3 files</a> 
+<!--  <li><a href="Eclipse-Setup.html">Setting up Java-CUP and JFlex under Eclipse (not preferred)</a> -->
+</li></ul>
+<p>
+Please pay attention to course Blackboard announcments, and ensure you
+follow the course discussion board (https://edstem.org/) for any
+updates and further information on the assignment.
+</p><ul>
+  <li>Do not use imports for external packages other than those in <span class="emphasis">java.util.*</span>.
+    Note that IntelliJ may offer the option of importing an external package to resolve an issue;
+    please avoid taking this option because it will often add an erroneous import that you will not need.
+    Such imports lead to the compilation failing in the environment in which your compiler will be assessed
+    because that environment may not include the external libraries.
+    Please check you are not importing external libraries before submitted.
+<!--
+  <li>Many people for assignment 1 imported arbitrary external libraries (that weren't actually used).
+   Such imports led to the compilation failing in my test environment that does not include those libraries.
+   Please check you aren't importing external libraries before submitted.
+   <b>The only external imports allowed are from java.util.*</b>
+-->
+  </li><li>You must <b>only</b> modify the files that must be submitted (see below).
+  </li><li>You must <b>not</b> modify any other files because we will be testing your implementation
+    using the existing other files with your submitted files.
+  </li><li>Please do <b>not</b> reformat the files because we would like to just print the differences
+    between the originals and the versions you hand in.
+  </li><li>Please keep the length of lines in your files below <b>100</b> characters, so that we can print them sensibly.
+  </li><li>Please avoid using <b>non-standard</b> characters, e.g. Chinese characters, including in the comments.
+    Non-standard characters are not accepted by some Java compilers and
+    all comments should be readable by the person assessing your assignment.
+  </li><li>Your implementation should be in Java <b>1.8</b>.
+    Set the IntelliJ preferences for the Java compiler to 1.8 (or use the "-source 1.8" option to the Java compiler).
+  </li><li>Please remove any debugging output before your assignment is submitted
+    because debugging output will cause your program to fail our automated testing of your assignment.
+  </li><li>Either avoid using tabs or set your tabs stops to 4 spaces (this is the default for IntelliJ)
+    so that your files will print sensibly.
+</li></ul>
+Read the fine print in detail before you start!
+And, most important, when you have finished implementing the assignment,
+come back and reread the fine print again.
+
+<h1>Procedures with value and reference parameters</h1>
+<p>
+The declaration of a procedure includes a list of formal parameters.
+The type of each formal parameter is declared
+and it optionally has a default expression to be used when the parameter is not supplied in the call.
+Formal reference parameters are preceded by the keyword "var".
+For example,
+</p><pre>  // A procedure fact with
+  // a formal value parameter n of type int with a default value of 0 and
+  // a formal reference parameter r of type int with no default
+  procedure fact( n: int &lt;- 0, var r: int ) =
+   begin
+    if n = 0 then
+      r := 1
+    else
+     begin
+      // The formal parameter n for the recursive call gets the value of the
+      // local n minus 1, where the n within n-1 is the value of the formal
+      // parameter n for this (calling) instance of fact.
+      // The parameter r of the call is the formal parameter r of this
+      // (calling) instance of fact.
+      call fact( n &lt;- n-1, r &lt;- r);
+      r := n * r
+     end
+   end // fact
+</pre>
+The above procedure returns the value of factorial n via r,
+e.g., the call
+<pre>    call fact( r&lt;-f, n&lt;-4 )
+</pre>
+assigns f the value of factorial 4, i.e., 4*3*2*1 = 24.
+Note that as the parameters must be explicitly named in the call,
+they can be in any order.
+The following uses the default value for n, i.e. 0.
+<pre>    call fact( r&lt;-f )
+</pre>
+It assigns f the value of factorial 0, i.e. 1.
+
+
+<h1>Syntax Changes</h1>
+
+<p>
+The following lexical tokens have been added to the scanner module of PL0 already.
+</p><ul>
+  <table>
+    <tbody><tr><td>COMMA</td>    <td>&#8594;</td>  <td>","</td></tr>
+    <tr><td>GETS</td>     <td>&#8594;</td>  <td>"&lt;-"</td></tr>
+  </tbody></table>
+</ul>
+<!--
+Keywords are case sensitive.
+<p>
+-->
+A procedure may have any number of formal value and reference parameters (zero or more).
+Each formal parameter has a type and an optional default expression.
+The syntax for a procedure declaration follows.
+It is given in Extended BNF, 
+but you won't be able to use the EBNF directly 
+in the parser generator <b>Java-CUP</b> (see below).
+<ul>
+  ProcedureDef &#8594; ProcedureHead '=' Block ';'<br>
+  ProcedureHead &#8594; 'procedure' IDENTIFIER '(' [ FormalParams  ] ')'<br>
+  FormalParams &#8594; FormalParam { ',' FormalParam }<br>
+  FormalParam &#8594; IDENTIFIER ':' TypeIdentifier [ '&lt;-' Condition ]<br>
+  FormalParam &#8594; 'var' IDENTIFIER ':' TypeIdentifier [ '&lt;-' LValue ]
+</ul>
+A procedure call has a list of actual parameters,
+each of which assigns an expression
+(Condition really (to allow for boolean expressions))
+to a formal parameter.
+<ul>
+  Statement &#8594; 'call' IDENTIFIER '(' [ ActualParams  ] ')'<br>
+  ActualParams &#8594; ActualParam { ',' ActualParam }<br>
+  ActualParam &#8594; IDENTIFIER '&lt;-' Condition
+</ul>
+Note that all actual parameter expressions are Conditions
+in order to allow for boolean value parameters.
+Type checking in the static checker is used to determine whether
+the parameter expression is valid, in particular for a reference parameter.
+<p>
+You are expected to provide some syntax error recovery using Java CUP's
+"error" symbol, in particular for formal and actual parameters.
+Note that you must handle semantic errors appropriately,
+including handling the situation when there is a syntax error,
+i.e., your compiler should not crash because of a syntax error.
+Your handling of syntax errors does not have to exactly match
+that used for the sample solutions.
+
+
+</p><h2>The Parser Generator Java-CUP</h2>
+
+The parser specification for the compiler is specified in the file
+<i>PL0.cup</i>.
+You will need to add productions (and their associated actions) to the
+specification and then run the parser generator <i>Java-CUP</i>
+(using run configuration "Run CUP")
+to generate the files <i>CUPParser.java</i> and <i>CUPToken.java</i>.
+Do not modify these two Java files directly 
+(even if you think you understand them (do you really?)) -
+remake them from <i>PL0.cup</i>.
+You should make the compiler before you change anything just to see
+what forms of messages to expect. 
+When you make the compiler (before you modify it) 
+there will be some warning messages about the terminal symbols like
+ILLEGAL
+being declared but never used;
+these are to be expected at this stage.
+Any new warning/error messages will be significant.
+There is HTML documentation for <i>Java-CUP</i> available from the
+class web page (with the assignment).
+
+
+<h2>The Scanner Generator JFlex</h2>
+
+All the lexical tokens for this version of the compiler have already been
+added to the lexical analyser. 
+The file <i>Lexer.java</i> is automatically generated by the scanner
+generator <i>JFlex</i> from <i>PL0.flex</i>;
+again, do not modify <i>Lexer.java</i>  -
+remake <i>Lexer.java</i> from <i>PL0.flex</i>.
+<p>
+Both <i>Java-CUP</i> and <i>JFlex</i> are available with the
+assignment files on the course web page,
+with instructions on how to run them in IntelliJ.
+Java archives for <i>Java-CUP</i> and <i>JFlex</i> are part of the
+IntelliJ project for the assignment.
+
+
+</p><h1>Static Semantic Restrictions</h1>
+
+First some terminology.
+Note that there are three different scopes to consider.
+<ul>
+  <li><i>formal parameter:</i> the declared parameter in the procedure header
+  </li><li><i>actual parameter:</i> the parameter in the call
+  </li><li><i>declaration scope:</i> the (outer) scope in which the procedure is declared
+  </li><li><i>local scope:</i> the (inner) scope containing the formal parameters
+  and local variables of a procedure
+  </li><li><i>calling scope:</i> the scope in which the procedure call occurs
+</li></ul>
+The name of a procedure must be distinct from all constants, variables,
+types, and other procedures declared in the declaration scope (as already).
+<p>
+The names of all the formal parameters of a procedure must be distinct.
+For the formal parameter declarations,
+the formal parameters are treated as local to the procedure,
+but the type identifiers and default expressions used in the parameter declarations are 
+treated as being from the declaration scope of the procedure
+(because the type and expression need to be shared with the calling context).
+To achieve this the type identifiers and expressions in the formal parameter
+declarations should be interpreted in the (outer) declaration scope of the procedure
+but the formal parameters should be defined within the (inner) local scope.
+</p><p>
+A formal parameter name <b>x</b>, may be the same as the name
+of a variable (or constant or type or procedure) declared non-locally;
+within the procedure, <b>x</b> refers to the formal parameter
+and any non-local <b>x</b> (a variable or other construct) is no longer accessible.
+Names declared locally within the body of a procedure <i>p</i> 
+cannot have the same name as a formal parameter of <i>p</i>
+(unless they are within the local scope of a procedure nested within <i>p</i>),
+i.e., formal parameters are in the same scope as local variables of the procedure.
+</p><p>
+For a procedure call on <i>p</i>,
+the value of each formal parameter may be specified at most once
+using an actual parameter of the form <tt>id &lt;- exp</tt>,
+where <tt>id</tt> is the name of a formal parameter of <i>p</i> and
+<tt>exp</tt> is an expression.
+If <tt>id</tt> is a formal value parameter of type <i>T</i>,
+<tt>exp</tt> must be assignment compatible with <i>T</i>.  
+If <tt>id</tt> is a formal reference parameter of type <i>T</i>,
+<tt>exp</tt> must be of type <i>ref(T)</i>.
+If a formal parameter to <i>p</i> does not have a corresponding actual parameter in the call,
+the default expression for the formal parameter is used;
+if there is neither an actual parameter nor a default expression for the parameter, that is an error.
+The default expression is defined in the declaration scope of the procedure
+and must satisfy the same typing rules as an actual parameter.
+
+
+</p><h1>Dynamic Semantics</h1>
+
+For a procedure call,
+it is as if fresh local variables corresponding to all the formal
+<b>value</b> parameters are allocated.
+All the value parameters are given the values of the corresponding
+actual parameter expressions (or default expressions if there is no actual parameter)
+and the statements in the body of the called procedure are executed.
+The actual parameter expressions are evaluated once at call time.
+The actual parameter expressions are evaluated with respect to the calling scope.
+<p>
+During execution of the body of a procedure any references to
+a formal value parameter treat it as a local variable of the procedure,
+and
+any access (read or write) to a formal reference parameter will (indirectly) access
+the corresponding actual parameter for that call each time.
+
+
+</p><h2> Object Code</h2>
+
+The PL0 compiler generates code for the Stack Machine.
+A description of the stack machine is available in
+<a href="https://learn.uq.edu.au/bbcswebdav/pid-6585336-dt-content-rid-36091159_1/courses/COMP4403S_7120_21405/publicweb/notes/Inst.pdf">Inst.pdf</a>.
+See also the file <i>StackMachine.java</i> (near the end)
+for details of the instruction set.
+
+<p>
+The Stack Machine provides features to help implement procedure calls.
+</p><ul>
+<li>The CALL instruction assumes that the top of the stack contains
+  the address of the procedure to be called and the second top of
+  stack been set up with the static link for the call. 
+  It pops and remembers the address of the procedure
+  (but leaves the static link on the stack where it is -- it becomes
+  the first word of the new stack frame).
+  It then pushes the frame pointer onto the stack to form the dynamic link, 
+  and sets the frame pointer to the address of the (already set up) static link.
+  Finally it pushes the return address (location of the instruction
+  after the call) onto the stack and branches to the (saved) address
+  of the procedure.
+</li>
+<li>The RETURN instruction exits from a procedure. 
+  It automatically deallocates all the local variables (not parameters),
+  pops the return address into the program instruction counter (pc),
+  restores the frame pointer (fp) from the dynamic link,
+  removes the dynamic and static links,
+  and branches to the return address. 
+</li>
+<li>The ALLOC_STACK instruction is used to allocate locations on
+  the run-time stack. It pops an argument from the top of
+  the stack which is the number of words to allocate for local
+  variables on the stack (not parameters).
+</li>
+<li>The DEALLOC_STACK instruction is used to deallocate words from
+  the run-time stack. It pops an argument from the top of
+  the stack which is the number of words to
+  deallocate from the stack (used for parameters). 
+</li>
+</ul>
+The usual way to implement parameters in a procedure call is 
+that the values of the actual parameter expressions are 
+loaded onto the stack before the call is made. 
+Because all the parameters are placed on the stack prior to 
+the stack frame being set up for the procedure,
+all of the parameters are at negative offsets from the
+frame pointer for the called procedure.
+<p>
+It is suggested that you implement a procedure call as follows.
+Your generated code should:
+</p><ul>
+  <li>For each parameter 
+      (in reverse order of their declaration),
+      load the value of the corresponding actual parameter expression
+      onto the stack.
+      </li>
+  <li>Note that these parameters
+    on the stack can be directly accessed from within the procedure
+    by using negative offsets from the frame pointer.
+    If you load the first parameter on to the stack last, it will
+    end up having the least (negative) offset from the frame
+    pointer (e.g., -1 for an integer).
+      </li>
+  <li>For reference parameters the actual parameter should evaluate to
+      an absolute address.
+  </li><li>Set up the static link -- this is already done in the current
+	code for parameterless procedures.</li>
+  <li>Call the procedure (genCall may be of use
+	for both the previous step and this step).</li>
+  <li>Within the procedure, references to the formal parameters may be
+	accomplished by using negative offsets from the current frame pointer. 
+  </li><li>Within the procedure, formal value parameters look just like local
+	variables (hint, hint) - the only difference is that their
+	addresses have negative offsets).</li>
+  <li>Within the procedure, formal reference parameters are absolute addresses
+      of the actual parameters and need to be loaded and stored indirectly.</li>
+  <li>After procedure exit, deallocate the space used by the
+    actual parameters by using the DEALLOC_STACK instruction, 
+    which expects a value on top of the stack indicating how many
+    top of stack locations to discard, 
+    i.e., the size of all the actual parameters.</li>
+</ul>
+<!--
+A run time error can be indicated by calling the instruction <i>STOP</i>
+with the appropriate error code on top of the stack.
+-->
+
+<h1>Student Misconduct</h1>
+
+Students are reminded of the University's policy on student
+misconduct, including plagiarism.  See the course profile and the
+School web page
+<a href="http://www.itee.uq.edu.au/itee-student-misconduct-including-plagiarism">
+http://www.itee.uq.edu.au/itee-student-misconduct-including-plagiarism</a>
+<p>
+You are expected to protect your files so that they are not readable by other users.
+</p><p>
+Your assignment is expected to be your own individual work and must
+not include code copied from other students, current or past.  You are
+also reminded not to post your (partial) solutions to assignments to
+any place accessible by others (before or after the assignment
+deadline), including the course discussion board or emailing to other
+students.  If you need that sort of help consult the lecturer and/or
+tutor.  Note that course discussion board allows private posts to the
+instructors.
+</p><p>
+This assignment compiler is provided solely for the purposes of doing
+this assignment and your solutions must never be shared, especially
+publicly, even after completion of the course.  Such publication would
+be considered both student misconduct and a breach of copyright.
+
+
+</p><h1>Late Submission</h1>
+
+<p>See section 5.3 of the course profile for details.</p>
+
+<p>
+If there are documented medical or exceptional circumstances that will
+affect your ability to complete the assignment by the due date, then
+you can apply for an extension. Extensions to non-exam assignments
+must be requested via <a href="https://my.uq.edu.au/">my.UQ</a>. You
+can find instructions on how to submit your
+request <a href="https://my.uq.edu.au/information-and-services/manage-my-program/exams-and-assessment/applying-extension">online</a>.
+</p>
+
+<p>
+If the assignment is submitted after the deadline, without an approved
+extension, a late penalty will apply. The late penalty shall be 10% of
+the maximum possible mark for the assessment item will be deducted per
+calendar day (or part thereof), up to a maximum of seven (7)
+days. After seven days, no marks will be awarded for the item. A day
+is considered to be a 24 hour block from the assessment item due
+time. Negative marks will not be awarded.
+</p>
+
+<h1>Submission</h1>
+<p>
+Please keep the length of lines in your files below 100 characters,
+so that we can print them sensibly.
+You should avoid using tabs or set your tabs stops to 4 spaces so that
+when we print them 
+(with tab stops set to 4 spaces) 
+they will print sensibly.
+Don't forget to remove any code generating debugging output
+and rogue external imports before submission.
+</p><p>
+You must submit your completed assignment electronically through 
+the assessment section of 
+the course <a href="https://learn.uq.edu.au/">BlackBoard site</a>
+(the BlackBoard Assessment page rather than the course web pages).
+</p><p>
+You need to submit the following list of individual files
+(not a .zip or other archive file)
+for evaluation and marking.
+Note that file names are case-sensitive.
+You must only modify the files 
+</p><ul>
+  <li>PL0.cup</li>
+  <li>ExpNode.java</li>
+  <li>ExpTransform.java</li>
+  <li>StatementNode.java</li>
+  <li>StatementTransform.java</li>
+  <li>StatementVisitor.java</li>
+  <li>StaticChecker.java</li>
+  <li>CodeGenerator.java</li>
+</ul>
+You can submit your assignment multiple times,
+but only the last copy submitted will be retained for marking.
+
+
+<h1>Assessment</h1>
+<p>
+The assignment is marked out of a total of 20 marks,
+with marks will be allocated as follows:
+</p><p>
+   6 Syntax analysis and tree building
+</p><p>
+   8 Static semantics checking
+</p><p>
+   6 Code generation
+</p><p>
+Marks will be awarded for the correctness of the changes to each category.
+<!--Readability, programming style and modular structure will also be criteria.-->
+Readability and modular structure will also be criteria.
+For readability, we expect that you follow good software engineering practice,
+such as appropriate choices of variable names,
+consistent indentation, appropriate comments where needed, etc.
+For modularity we expect you introduce new methods where it makes sense to help structure the program
+and to avoid unnecessary duplication of code.
+Use of generic Java utility interfaces (like Set, Map, List, Queue, ...) and
+their implementations (like HashSet, ..., TreeMap, ..., LinkedList, ...)
+is encouraged.
+We expect you to produce well structured programs that are not unnecessarily complex,
+both structurally
+(e.g. complex control flow that is hard to follow),
+and in terms of execution time and space requirements,
+(e.g. an O(n) algorithm is preferred to an O(n<sup>2</sup>) algorithm,
+and a O(log n) algorithm is even better).
+
+</p><p>
+Your assignment files will be compiled in the context of the remaining
+assignment files and put through a sequence of tests.
+The total mark for this assignment will be limited by the
+overall success of the development in the following way:
+</p><ul>
+   <li>The program submitted does not compile: Maximum 10/20.</li>
+   <li>The program submitted will not correctly handle any test case with 
+       the new facilities: Maximum 13/20.</li>
+</ul>
+You are not required to correct any bugs that may exist in the original compiler.
+However, we would appreciate being informed of any such bugs
+that you detect, so that we can correct them,
+or any improvements to the compiler you might like to suggest.
+<p>
+</p><hr>
+
+
+
+
+</body></html>

@@ -1,0 +1,422 @@
+
+<!-- saved from url=(0133)https://learn.uq.edu.au/bbcswebdav/pid-6373330-dt-content-rid-34642083_1/courses/COMP4403S_7120_21405/publicweb/2021-assignment1.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>COMP4403  Assignment 1 - Recursive descent</title>
+</head>
+
+<body>
+<link type="text/css" rel="stylesheet" href="./COMP4403 Assignment 1 - Recursive descent_files/style.css">
+
+<!-- <FORM><INPUT TYPE="button" VALUE="Back" onClick="history.go(-1);return true;"></FORM> -->
+  
+Last updated: <lastupdated>Wed Mar 17 11:42:10 AEST 2021</lastupdated>.
+
+<center>
+<h1>COMP4403 - Compilers and Interpreters<br>Assignment 1</h1>
+<h2>Due date: 15:00 Monday 12th April, 2021</h2>
+</center>
+<hr>
+<p> This is an individual assignment which involves modifying the
+recursive descent compiler for the language PL0 to add a <b>skip</b>
+statement, a multiple assignment statement, and a case (switch)
+statement.
+
+</p><h2>Assignment Compiler files</h2>
+
+All sources for the assignment PL0 compiler are available as a1.zip (below). 
+Please be sure to use the version for this assignment and not the one used for the tutorials or another assignment. 
+There are differences (like the lexical tokens you need for this assignment are only defined in this version).
+<ul>
+  <li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6373330-dt-content-rid-34642083_1/courses/COMP4403S_7120_21405/publicweb/assignments/a1.zip">a1.zip</a> 
+  Save this .zip file and follow the instructions for setting up a compiler project in IntelliJ
+  </li><li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6373330-dt-content-rid-34642083_1/courses/COMP4403S_7120_21405/publicweb/compiler.html">Setting up and running PL0 in IntellliJ</a> 
+  </li><li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6373330-dt-content-rid-34642083_1/courses/COMP4403S_7120_21405/publicweb/a1-README.html">Brief documentation on assignment 1 files</a> 
+<!--  <li><a href="Eclipse-Setup.html">Setting up Java-CUP and JFlex under Eclipse (not preferred)</a> -->
+</li></ul>
+<p>
+Please pay attention to course Blackboard announcments, and ensure you
+follow the course discussion board (https://edstem.org/) for any
+updates and further information on the assignment.
+</p><ul>
+  <li>Do not use imports for external packages other than those in <span class="emphasis">java.util.*</span>.
+    Note that IntelliJ may offer the option of importing an external package to resolve an issue;
+    please avoid taking this option because it will often add an erroneous import that you will not need.
+    Such imports lead to the compilation failing in the environment in which your compiler will be assessed
+    because that environment may not include the external libraries.
+    Please check you are not importing external libraries before submitted.
+  </li><li>You must <b>only</b> modify the files that must be submitted (see below).
+  </li><li>You must <b>not</b> modify any other files because we will be testing your implementation
+    using the existing other files with your submitted files.
+  </li><li>Please do <b>not</b> reformat the files because we would like to just print the differences
+    between the originals and the versions you hand in.
+  </li><li>Please keep the length of lines in your files below <b>100</b> characters, so that we can print them sensibly.
+  </li><li>Please avoid using <b>non-standard</b> characters, e.g. Chinese characters, including in the comments.
+    Non-standard characters are not accepted by some Java compilers and
+    all comments should be readable by the person assessing your assignment.
+  </li><li>Your implementation should be in Java <b>1.8</b>.
+    Set the IntelliJ preferences for the Java compiler to 1.8 (or use the "-source 1.8" option to the Java compiler).
+  </li><li>Please remove any debugging output before your assignment is submitted
+    because debugging output will cause your program to fail our automated testing of your assignment.
+  </li><li>Either avoid using tabs or set your tabs stops to 4 spaces (this is the default for IntelliJ)
+    so that your files will print sensibly.
+</li></ul>
+Read the fine print in detail before you start!
+And, most important, when you have finished implementing the assignment,
+come back and reread the fine print again.
+
+
+<h3>Overview</h3>
+
+The multiple assignment statement allows a list of variables to be simultaneously assigned the values of
+a list of expressions.
+The trick is that all the expressions are evaluated before any of the assignments takes place,
+for example, the following multiple assignment <b>swaps</b> the values of x and y:
+<pre>   x := y | y := x
+</pre>
+The following assignment rotates the values of x, y and z:
+<pre>   x := y | y := z | z := x
+</pre>
+<p>
+The following <b>case</b> statement assigns to y exactly once.
+</p><pre>  case i of 
+  when 2: y := 1 
+  when 3: y := x 
+  when 5: y := x*x 
+  default y := 42
+  end
+</pre>
+
+
+
+<h3>Syntax Changes</h3>
+
+The following lexical tokens have been added to the scanner module of PL0 already.
+<ul>
+        <table>
+                <tbody><tr><td>BAR</td>        <td>&#8594;</td>  <td>"|"</td></tr>
+                <tr><td>KW_CASE</td>    <td>&#8594;</td>  <td>"case"</td></tr>
+                <tr><td>KW_OF</td>      <td>&#8594;</td>  <td>"of"</td></tr>
+                <tr><td>KW_WHEN</td>    <td>&#8594;</td>  <td>"when"</td></tr>
+                <tr><td>KW_DEFAULT</td> <td>&#8594;</td>  <td>"default"</td></tr>
+                <tr><td>KW_SKIP</td>    <td>&#8594;</td>  <td>"skip"</td></tr>
+        </tbody></table>
+</ul>
+Keywords are case sensitive.
+<p>
+The non-terminal <i>Statement</i> in the grammar for PL0 is modified to
+the following Extended Backus-Naur Form (EBNF) grammar rules.
+</p><ul>
+  <table>
+        <tbody><tr><td>Statement</td>  <td>&#8594;</td>  <td>WhileStatement | IfStatement | CallStatement |</td></tr>
+        <tr><td></td>           <td></td>       <td>Assignment | ReadStatement | WriteStatement | CompoundStatement |</td></tr>
+        <tr><td></td>           <td></td>       <td><font color="blue">SkipStatement | CaseStatement</font>  </td></tr>
+  </tbody></table>
+</ul>
+<p>
+where
+</p><ul>
+  <table>
+    <tbody><tr><td>SkipStatement</td>  <td>&#8594;</td><td>KW_SKIP</td></tr>
+        <tr><td>Assignment</td>    <td>&#8594;</td><td>SingleAssign { BAR SingleAssign }</td></tr>
+        <tr><td>SingleAssign</td>    <td>&#8594;</td><td>LValue ASSIGN Condition
+        </td></tr><tr><td>CaseStatement</td>  <td>&#8594;</td><td>KW_CASE Condition KW_OF { CaseBranch } [ KW_DEFAULT StatementList ] KW_END</td></tr>
+        <tr><td>CaseBranch</td>     <td>&#8594;</td><td>KW_WHEN Constant COLON StatementList</td></tr>
+  </tbody></table>
+</ul>
+Note that
+each branch of a <b>case</b> statement contains a statement list, rather than just a single statement,
+and that
+the labels on each branch are constant expressions
+(defined using the existing nonterminal <i>Constant</i>)
+and hence their values can be determined at compile time 
+(static analysis time to be more precise).
+<p>
+The addition of a <b>skip</b> statement allows one to write
+</p><pre>    if x &lt; 0 then x := -x else skip
+</pre>
+to assign x its absolute value.
+Equivalently one can use the following:
+<pre>    case x &lt; 0 of
+    when true: x := -x
+    when false: skip
+    end
+</pre>
+
+
+
+<h3>Static Semantic Restrictions</h3>
+
+<h4>Skip statement</h4>
+
+There aren't any static semantic restrictions on the <b>skip</b> statement,
+that is, it is well formed for any symbol table context.
+<center>
+  syms &nbsp;&nbsp; &#8866; &nbsp;&nbsp;  WFStatement(<b>skip</b>)
+</center>
+
+<h4>Multiple assignment</h4>
+
+All of the variables on the left sides of a multiple assignment must be distinct.
+The type of each condition (expression) must be assignment compatible (coercible) to 
+the type of the corresponding variable to which it is assigned.
+<center>
+  &#8704; i, j &#8712; [1..n] &nbsp; • &nbsp; i &#8800; j  &#8658; v<sub>i</sub> &#8800; v<sub>j</sub><br>
+  &#8704; i &#8712; [1..n] &nbsp; • &nbsp;  (syms &nbsp; &#8866; &nbsp; v<sub>i</sub> : ref(T<sub>i</sub>)) &amp;&amp; (syms &nbsp; &#8866; &nbsp; e<sub>i</sub> : T<sub>i</sub>)<br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms  &#8866;   WFStatement(v<sub>1</sub> :=  e<sub>1</sub> | v<sub>2</sub> := e<sub>2</sub> |  ... | v<sub>n</sub> := e<sub>n</sub>)
+</center>
+
+<h4>Case statement</h4>
+<p>
+The type of the expression (condition) for the <b>case</b> statement
+must be a scalar type
+(it could be int or boolean or a subrange thereof)
+and all labels of case branches must be compatible with that type
+and must be elements of the type (see containsElement in Type.java).
+The labels must be constant expressions, and
+the value of each label must be unique within a single <b>case</b> statement.
+The bodies of all the case branches must be well formed.
+</p><p>
+The rule for well formedness of a <b>case</b> statement is given below;
+within it T must be a scalar type and for a scalar type values(T) is
+the set of values in the type T,
+e.g. values(boolean) = {false,true} and values([-2..2]) = {-2,-1,0,1,2}.
+</p><center>
+  syms &nbsp; &#8866; &nbsp; e : T <br>
+  isScalarType(T)<br>
+  syms &nbsp; &#8866; &nbsp; WFStatement(ss)<br>
+  &#8704; j &#8712; [1..n] &nbsp; • &nbsp;&nbsp;
+     syms&nbsp;&nbsp;&#8866;&nbsp;&nbsp;  WFStatement(ss<sub>j</sub>) &nbsp;&nbsp; &amp;&amp; &nbsp;&nbsp;
+     syms&nbsp;&nbsp;&#8866;&nbsp;&nbsp;  c<sub>j</sub> : T &nbsp;&nbsp; &amp;&amp; &nbsp;&nbsp;
+        (c<sub>j</sub> &#8594;<sup>e</sup> v<sub>j</sub> &nbsp;&nbsp; &#8658; &nbsp;&nbsp;
+            v<sub>j</sub> &#8712; values(T))<br>
+     &#8704; i,j &#8712; [1..n] &nbsp; • &nbsp;
+        i &#8800; j  &nbsp;&nbsp; &amp;&amp; &nbsp;&nbsp;
+        c<sub>i</sub> &#8594;<sup>e</sup> v<sub>i</sub> &nbsp;&nbsp; &amp;&amp; &nbsp;&nbsp;
+        c<sub>j</sub> &#8594;<sup>e</sup> v<sub>j</sub>  &nbsp;&nbsp; &#8658; &nbsp;&nbsp;
+            v<sub>i</sub> &#8800; v<sub>j</sub><br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;  WFStatement(case e of when c<sub>1</sub>: ss<sub>1</sub> when c<sub>2</sub>: ss<sub>2</sub>
+  ... when c<sub>n</sub>: ss<sub>n</sub> default ss end)
+</center>
+When determining the scalar type T to be used in the rule,
+it is assumed that we do not make use of widening or narrowing rules for the types of expressions
+but we may need to dereference a reference type (to get a scalar type).
+<p>
+For the version of the case statement in which there is no default clause,
+the requirement for the well-formedness of its statement sequence ss is omitted.
+
+
+</p><h3>Dynamic Semantics</h3>
+
+<h4>Skip statement</h4>
+
+The <b>skip</b> statement does nothing. The less it does the better.
+
+<h4>Multiple assignment</h4>
+
+For a multiple assignment, all the expressions in all the assignments are evaluated
+before any of the variables are assigned,
+and then all of the assignments take place.
+Note that it doesn't matter in what order the simple assignments are done
+because the left sides are all distinct and the expressions have all
+been evaluated using the values of the variables before any
+assignments take place 
+(and the language does not have any side effects).
+
+
+<h4>Case statement</h4>
+<p>
+  The <b>case</b> statement evaluates its (scalar) expression to a
+  value, v, and then selects the branch with the label that has value
+  v and executes the corresponding statement.  If the value of the
+  expression is not equal to any of the labels of any of the branches
+  then the <b>default</b> branch is executed.  If there is
+  no <b>default</b> branch, this is considered a <b>runtime error</b>
+  and the interpreter is terminated by a call to method <b>runtime</b>
+  with an error message "expression in case doesn't match any label".
+</p><p>
+On completion of the execution of the appropriate branch within a <b>case</b> statement,
+the next statement executed is the one following the whole <b>case</b> statement.
+That is, it is <b>NOT</b> like a switch statement in which execution
+of one branch flows into the next branch unless a <b>break</b> statement
+is placed at the end of the first branch -- a language feature that is the
+source of many a bug.
+
+
+</p><h3>Interpreter</h3>
+
+The PL0 compiler for this assignment uses an interpreter (rather than generate code).
+A description of the interpreter is available in
+<a href="https://learn.uq.edu.au/bbcswebdav/pid-6373330-dt-content-rid-34642083_1/courses/COMP4403S_7120_21405/publicweb/notes/Interpreter.pdf">Interpreter.pdf</a>.
+<p>
+The interpretation is done in class <i>Interpreter</i>,
+which uses class <i>Frame</i> for its runtime stack and
+class <i>Value</i> for the runtime representation of values.
+Each kind of expression/statement node in the PL0 abstract syntax tree
+has a "visit" method that interprets (evaluates/executes) the corresponding expression/statement.
+</p><p>
+The interpreter for the <b>skip</b> statement is trivial.
+</p><p>
+The interpreter for the multiple assignment has to be careful to evaluate all expressions before doing any assignments.
+</p><p>
+The interpreter for the <b>case</b> statement is quite simple (a handful of lines)
+provided you have chosen a suitable representation for the CaseStatementNode.
+
+</p><h3>Tests</h3>
+
+Some tests are available in the <b>test-pgm</b> directory (in a1.zip),
+and can be used to help you to debug your code. All of the tests can
+be run together using the <b>Test PL0</b> configuration. You can also
+individually run a test using <b>Run PL0</b> on a selected PL0
+program. The test cases of the form
+<b>test-base*.pl0</b> are useful for regression testing, to make sure
+that you haven't broken any existing functionality in the compiler, and
+the other tests can help you find bugs in the new compiler
+features.
+
+<h3>Student Misconduct</h3>
+
+Students are reminded of the University's policy on student
+misconduct, including plagiarism.  See the course profile and the
+School web page
+<a href="http://www.itee.uq.edu.au/itee-student-misconduct-including-plagiarism">
+http://www.itee.uq.edu.au/itee-student-misconduct-including-plagiarism</a>
+<p>
+You are expected to protect your files so that they are not readable by other users.
+</p><p>
+Your assignment is expected to be your own individual work and must
+not include code copied from other students, current or past.  You are
+also reminded not to post your (partial) solutions to assignments to
+any place accessible by others (before or after the assignment
+deadline), including the course discussion board or emailing to other
+students.  If you need that sort of help consult the lecturer and/or
+tutor.  Note that course discussion board allows private posts to the
+instructors.
+</p><p>
+This assignment compiler is provided solely for the purposes of doing
+this assignment and your solutions must never be shared, especially
+publicly, even after completion of the course.  Such publication would
+be considered both student misconduct and a breach of copyright.
+
+</p><h3>Late Submission</h3>
+
+<p>See section 5.3 of the course profile for details.</p>
+
+<p>
+If there are documented medical or exceptional circumstances that will
+affect your ability to complete the assignment by the due date, then
+you can apply for an extension. Extensions to non-exam assignments
+must be requested via <a href="https://my.uq.edu.au/">my.UQ</a>. You
+can find instructions on how to submit your
+request <a href="https://my.uq.edu.au/information-and-services/manage-my-program/exams-and-assessment/applying-extension">online</a>.
+</p>
+
+<p>
+If the assignment is submitted after the deadline, without an approved
+extension, a late penalty will apply. The late penalty shall be 10% of
+the maximum possible mark for the assessment item will be deducted per
+calendar day (or part thereof), up to a maximum of seven (7)
+days. After seven days, no marks will be awarded for the item. A day
+is considered to be a 24 hour block from the assessment item due
+time. Negative marks will not be awarded.
+</p>
+
+<!--
+A penalty of 5% of the maximum mark for an assignment will be deducted for each day or part thereof late up to a limit of 7 days,
+after which time assignments will not be accepted for assessment unless you have been granted an extension.
+<p>
+As we plan to hand back assignments a week or two after submission,
+requests for extension will not be accepted more than one week late,
+unless there are exceptional circumstances. 
+<p>
+Requests for extensions should be accompanied by suitable documentation 
+(see the course profile for details).
+<p>
+Personal hardware or computer failures are not grounds for extension.
+Assignments must be backed up on the university system.
+-->
+
+<h3>Submission</h3>
+Please keep the length of lines in your files below 100 characters,
+so that we can print them sensibly.
+You should avoid using tabs or set your tabs stops to 4 spaces so that
+when we print them 
+(with tab stops set to 4 spaces) 
+they will print sensibly.
+Do not forget to remove any code generating debugging output
+and any rogue external imports before submission.
+<p>
+You must submit your completed assignment electronically through 
+the assessment section of 
+the course <a href="https://learn.uq.edu.au/">BlackBoard site</a>
+(the BlackBoard Assessment page rather than the course web pages).
+</p><p>
+You need to submit the following list of individual files
+(not a .zip or any other form of archive file)
+for evaluation and marking.
+Note that file names are case-sensitive.
+You must only modify the files 
+</p><ul>
+  <li>Interpreter.java</li>
+  <li>Parser.java</li>
+  <li>StatementNode.java</li>
+  <li>StatementVisitor.java</li>
+  <li>StaticChecker.java</li>
+</ul>
+You can submit your assignment multiple times,
+but only the last copy submitted will be retained for marking.
+
+<h3>Assessment</h3>
+
+
+The assignment is marked out of a total of 20 marks.
+Marks will be allocated as follows:
+<ul>
+   <li>8 - Syntax analysis including syntax error recovery and tree building</li>
+   <li>7 - Static semantics checking</li>
+   <li>5 - Interpreter</li>
+</ul>
+Marks will be awarded for the correctness of the changes to each category.
+<p>
+Readability, modular structure, and structural and computational complexity are also criteria.
+For readability, we expect that you follow good software engineering practice,
+such as appropriate choices of variable names,
+consistent indentation, appropriate comments where needed, etc.
+For modularity we expect you introduce new methods where it makes sense to help structure the program
+and especially to avoid unnecessary duplication of code.
+Use of generic Java utility interfaces (like Set, Map, List, Queue, ...) and
+their implementations (like HashSet, ..., TreeMap, ..., LinkedList, ...)
+is encouraged.
+We expect you to produce well structured programs that are not unnecessarily complex,
+both structurally
+(e.g. complex control flow that is hard to follow),
+and in terms of execution time and space requirements,
+(e.g. an O(n) algorithm is preferred to an O(n<sup>2</sup>) algorithm,
+and a O(log n) algorithm is even better).
+</p><p>
+Your assignment files will be compiled in the context of the remaining
+assignment files and put through a sequence of tests.
+The total mark for this assignment will be limited by the
+overall success of the development in the following way:
+</p><ul>
+   <li>The program submitted does not compile: Maximum 10/20.</li>
+   <li>The program submitted will not correctly handle any test case with 
+       the new facilities: Maximum 13/20.</li>
+</ul>
+You are not required to correct any bugs that may exist in the original compiler.
+However, we would appreciate being informed of any such bugs that you detect,
+so that we can correct them,
+or any improvements to the compiler you might like to suggest.
+<p>
+</p><hr>
+
+
+<!--
+<p>
+<FORM><INPUT TYPE="button" VALUE="Back" onClick="history.go(-1);return true;"></FORM>
+-->
+
+
+
+</body></html>

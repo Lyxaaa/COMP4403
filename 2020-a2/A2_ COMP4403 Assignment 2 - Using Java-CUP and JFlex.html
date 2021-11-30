@@ -1,0 +1,706 @@
+
+<!-- saved from url=(0133)https://learn.uq.edu.au/bbcswebdav/pid-6438721-dt-content-rid-35368994_1/courses/COMP4403S_7120_21405/publicweb/2021-assignment2.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>A2: COMP4403 Assignment 2 - Using Java-CUP and JFlex</title>
+</head>
+
+<body>
+<link type="text/css" rel="stylesheet" href="./A2_ COMP4403 Assignment 2 - Using Java-CUP and JFlex_files/style.css">
+
+<!--
+<p>
+<FORM><INPUT TYPE="button" VALUE="Back" onClick="history.go(-1);return true;"></FORM>
+-->
+
+<p>
+Last updated: <lastupdated>Fri Apr 16 11:03:15 AEST 2021</lastupdated>.
+
+</p><center>
+<h1>COMP4403 - Compilers and Interpreters<br>Assignment 2</h1>
+<h2>Due date: 15:00 Tuesday 04 May 2021 </h2>
+</center>
+<hr>
+<p>
+This is an individual assignment which involves modifying the
+assignment 2 compiler for the language PL0
+(provided on the course web page with this assignment) 
+to add
+record (struct) 
+and
+pointer types. 
+
+</p><h1>Assignment Compiler files</h1>
+
+All sources for the assignment PL0 compiler are available as a2.zip (below). 
+Please be sure to use the version for this assignment and not the one used for the tutorials or another assignment. 
+There are differences (like the lexical tokens you need for this assignment are only defined in this version).
+<ul>
+  <li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6438721-dt-content-rid-35368994_1/courses/COMP4403S_7120_21405/publicweb/assignments/a2.zip">a2.zip</a> 
+  Save this .zip file and follow the instructions for setting up a compiler project in IntelliJ
+  </li><li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6438721-dt-content-rid-35368994_1/courses/COMP4403S_7120_21405/publicweb/compiler.html">Setting up and running PL0 in IntellliJ</a> 
+  </li><li><a href="https://learn.uq.edu.au/bbcswebdav/pid-6438721-dt-content-rid-35368994_1/courses/COMP4403S_7120_21405/publicweb/a2-README.html">Brief documentation on assignment 2 files</a> 
+<!--  <li><a href="Eclipse-Setup.html">Setting up Java-CUP and JFlex under Eclipse (not preferred)</a> -->
+</li></ul>
+<p>
+Please pay attention to course Blackboard announcments, and ensure you
+follow the course discussion board (https://edstem.org/) for any
+updates and further information on the assignment.
+</p><ul>
+  <li>Do not use imports for external packages other than those in <span class="emphasis">java.util.*</span>.
+    Note that IntelliJ may offer the option of importing an external package to resolve an issue;
+    please avoid taking this option because it will often add an erroneous import that you will not need.
+    Such imports lead to the compilation failing in the environment in which your compiler will be assessed
+    because that environment may not include the external libraries.
+    Please check you are not importing external libraries before submitted.
+<!--
+  <li>Many people for assignment 1 imported arbitrary external libraries (that weren't actually used).
+   Such imports led to the compilation failing in my test environment that does not include those libraries.
+   Please check you aren't importing external libraries before submitted.
+   <b>The only external imports allowed are from java.util.*</b>
+-->
+  </li><li>You must <b>only</b> modify the files that must be submitted (see below).
+  </li><li>You must <b>not</b> modify any other files because we will be testing your implementation
+    using the existing other files with your submitted files.
+  </li><li>Please do <b>not</b> reformat the files because we would like to just print the differences
+    between the originals and the versions you hand in.
+  </li><li>Please keep the length of lines in your files below <b>100</b> characters, so that we can print them sensibly.
+  </li><li>Please avoid using <b>non-standard</b> characters, e.g. Chinese characters, including in the comments.
+    Non-standard characters are not accepted by some Java compilers and
+    all comments should be readable by the person assessing your assignment.
+  </li><li>Your implementation should be in Java <b>1.8</b>.
+    Set the IntelliJ preferences for the Java compiler to 1.8 (or use the "-source 1.8" option to the Java compiler).
+  </li><li>Please remove any debugging output before your assignment is submitted
+    because debugging output will cause your program to fail our automated testing of your assignment.
+  </li><li>Either avoid using tabs or set your tabs stops to 4 spaces (this is the default for IntelliJ)
+    so that your files will print sensibly.
+</li></ul>
+Read the fine print in detail before you start!
+And, most important, when you have finished implementing the assignment,
+come back and reread the fine print again.
+
+
+<h1>Overview</h1>
+
+<h2>Records and pointers</h2>
+
+Records are similar to C structs (and very simple Java classes).
+They only have fields (no methods).
+As well as records, we have a pointer type.
+Unlike Java classes,
+we distinguish between a record object and a pointer to that object.
+<p>
+Records are accessed via value (rather than reference),
+i.e., assignment of records copies all fields rather than 
+assigning a reference.
+However, for a variable of type <i>pointer to a record</i>
+we only assign the pointer.
+</p><p>
+Record and pointer types may be declared in a type definition,
+for example, we can declare 
+<b>List</b> as the type of a pointer to a value of type <b>Node</b>.
+The type <b>Node</b> is a record that contains two fields: 
+<b>x</b> of type integer,
+and
+<b>next</b> of type <b>List</b> (i.e., pointer to a <b>Node</b>).
+</p><ul><b>
+    type 
+    <ul>
+       Node = record x: int; next: List end;<br>
+       List = ^ Node;
+    </ul>
+</b></ul>
+<p>
+For example, one may declare variables <b>r</b> and <b>r2</b> to be of a record type,
+and <b>p</b> and <b>q</b> to be pointers as follows.
+</p><ul><b>
+    var r: Node; r2: Node; p : List; q: List;
+</b></ul>
+A pointer value may be assigned a dynamically allocated object of its base
+type via a <b>new</b> expression.
+<ul><b>
+    p := new List
+</b></ul>
+Fields of a record <b>r</b> may be assigned appropriate values:
+<ul><b>
+    r.x := 2;   r.next := p
+</b></ul>
+and the values of the fields may be accessed:
+<ul><b>
+    write r.x
+</b></ul>
+Assignment of whole records is also allowed, e.g.,
+<ul><b>
+    r2 := r
+</b></ul>
+assigns both fields of <b>r2</b> the corresponding fields of <b>r</b>.
+<p>
+A record constructor allows a value of record type to be built, e.g.,
+the following assignment to <b>r</b> is equivalent to the two assignments 
+to the fields of <b>r</b> above.
+</p><ul><b>
+    r := Node{ 2, p }
+</b></ul>
+A record constructor consists of the type identifier of a record 
+followed by a list of expressions in braces that are assigned to the
+fields of the record. The order of the expressions corresponds to the 
+order of declaration of the fields in the record type.
+<p>
+The value pointed to by a pointer is referenced by <b>p^</b> and
+the fields of that object by <b>p^.x</b> and <b>p^.next</b>.
+For example, we may set the <b>x</b> field of the object pointed to
+by <b>p</b> to be <b>34</b> via the assignment
+</p><ul><b>
+  p^.x := 34
+</b></ul>
+and we may dynamically allocate a new record object and set
+the <b>next</b> field of the record pointed to by <b>p</b> 
+to point to that object by
+<ul><b>
+  p^.next := new List
+</b></ul>
+Note that a <b>new List</b> expression can be used anywhere an expression
+of type <b>List</b> is expected.
+Arbitrary chains of dereferencing are allowed.
+For example, <b>p^.next^.next</b> references the <b>next</b> field of
+the object pointed to by the <b>next</b> field of the object pointed
+to by <b>p</b>.
+Such references may be used
+either on the left side of an assignment 
+or on the right side within an expression where a value of
+that type (<b>List</b> in the example) is expected.
+For example, we may increment the field <b>x</b> of
+the object <b>p^.next</b> by the statement:
+<ul><b>
+  p^.next^.x := p^.next^.x + 1
+</b></ul>
+Pointers may be directly assigned.
+For example, after the assignment
+<ul><b>
+  q := p
+</b></ul>
+both <b>q</b> and <b>p</b> both point to the same object.
+If we then perform the assignment
+<ul><b>
+  q^.next := nil
+</b></ul>
+where <b>nil</b> is the special pointer constant for a null pointer,
+then because both <b>q</b> and <b>p</b> point to the same object,
+the value of <b>p^.next</b> will also be <b>nil</b>.
+Pointers may also be compared (but only for equality and inequality),
+so after the above assignment the comparison
+<ul><b>
+  if p^.next = nil then ...
+</b></ul>
+will return true and the <b>if</b> statement will take the <b>then</b>
+branch.
+
+
+<h1>Syntax Changes</h1>
+
+The reserved keywords "record" and "new" have already
+been added to the lexical analyser as the tokens <i>KW_RECORD</i>
+and <i>KW_NEW</i>,
+and the symbols "{", "}", "." and "^" have been added as tokens 
+<i>LCURLY</i>, <i>RCURLY</i>, <i>PERIOD</i> and <i>POINTER</i>.
+They have also been added to the terminals definitions in PL0.cup.
+<p>
+The syntax for record and pointer type definitions follows.
+It is given in EBNF, but you won't be able to use the EBNF directly 
+in the parser generator <b>Java-CUP</b>.
+</p><ul>
+  Type &#8594; SubrangeType | TypeIdentifier | RecordType | PointerType<br>
+  RecordType &#8594; "record" Fields "end"<br>
+  Fields &#8594; Field { ";" Field }<br>
+  Field &#8594; IDENTIFIER ":" TypeIdentifier<br>
+  PointerType &#8594; "^" TypeIdentifier
+</ul>
+<p>
+A reference to a field of a record can be used as an LValue
+either within an expression or on the left side of an assignment.
+A pointer dereference can also be used as an LValue.
+A "new" expression or a record expression can be used as a Factor in an expression.
+</p><ul>
+  LValue &#8594; IDENTIFIER  |  LValue "." IDENTIFIER  |  LValue "^"<br>
+  Factor &#8594; ... | "new" TypeIdentifier | TypeIdentifier "{" ExpList "}"<br>
+  ExpList &#8594; Condition { "," Condition }
+</ul>
+Note that a field of a record may itself be of type record.
+Hence the above syntax has an LValue before the "." 
+rather than an IDENTIFIER
+and similarly there is an LValue before "^".
+
+<h2>The Parser Generator Java-CUP</h2>
+
+The parser specification for the compiler is specified in the file
+<span class="filename">PL0.cup</span>.
+You will need to add productions (and their associated actions) to the
+specification and then run the parser generator <span class="filename">Java-CUP</span>
+(manually or automatically)
+to generate the files <span class="filename">CUPParser.java</span> and <span class="filename">CUPToken.java</span>.
+Do not modify these two Java files directly 
+(even if you think you understand them (do you really?)) -
+remake them from <span class="filename">PL0.cup</span>.
+You should make the compiler before you change anything just to see
+what forms of messages to expect. 
+When you make the compiler (before you modify it) 
+there will be some warning messages about the terminal symbols like
+<span class="keyword">ILLEGAL</span>
+being declared but never used;
+these are to be expected at this stage.
+Any new warning/error messages will be significant.
+Beware that if there are Java-CUP errors reported,
+the Java files for the parser will not be generated,
+so check for Java-CUP errors first.
+There is HTML documentation for <span class="filename">Java-CUP</span> available from the
+class web page (with the assignment).
+
+
+<h2>The Scanner Generator JFlex</h2>
+
+All the lexical tokens for this version of the compiler have already been
+added to the lexical analyser. 
+<p>
+The file <span class="filename">Lexer.java</span> is automatically generated by the scanner
+generator <span class="filename">JFlex</span> from <span class="filename">PL0.flex</span>;
+again, do not modify <span class="filename">Lexer.java</span>  -
+remake <span class="filename">Lexer.java</span> from <span class="filename">PL0.flex</span>.
+</p><p>
+Both <span class="filename">Java-CUP</span> and <span class="filename">JFlex</span> are available with the
+assignment files on the course web page,
+with instructions on how to run them in IntelliJ.
+Java archives for <span class="filename">Java-CUP</span> and <span class="filename">JFlex</span> are part of the
+IntelliJ project for the assignment.
+
+</p><h1>Static Semantic Restrictions</h1>
+
+<h2>Records</h2>
+
+The names of fields of a record must be distinct.
+<p>
+All of the type identifiers used for fields
+must be defined type identifiers.
+</p><p>
+A field of a record may be of any type, 
+including a pointer or record type but may not include the
+same record type as being declared either directly or indirectly,
+e.g. the following is invalid both
+because R directly includes R and
+because R indirectly includes R, via Q.
+</p><pre>    type R = record x : int; p : Q; next: R end;
+         Q = record y : int; q : R end;
+</pre>
+<p>
+The rule for well formedness of a <b>record</b> type is given below.
+</p><center>
+  &#8704; i,j &#8712; 1..n &nbsp; • &nbsp; i &#8800; j  &#8658; id<sub>i</sub> &#8800; id<sub>j</sub>
+  <br>
+  &#8704; j &#8712; 1..n &nbsp; • &nbsp; &nbsp;&nbsp;
+     syms&nbsp;&nbsp;&#8866;&nbsp;&nbsp;  typeof(t<sub>j</sub>) = T<sub>j</sub> 
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;  typeof(record id<sub>1</sub>: t<sub>1</sub>; id<sub>2</sub>: t<sub>2</sub>; 
+  ... id<sub>n</sub>: t<sub>n</sub> end) = 
+    RecordType([ (id<sub>1</sub>,  T<sub>1</sub>), (id<sub>2</sub>, T<sub>2</sub>), 
+           ... (id<sub>n</sub>, T<sub>n</sub>) ])
+</center>
+<p>
+A reference to a field of a record (e.g., <b>r.x</b>) consists of 
+an <b>LValue</b>, (e.g., <b>r</b>),
+which must be a record
+and a field name, (e.g., <b>x</b>),
+which must be one of the fields of that record.
+Note that an <b>LValue</b> may appear on either the left or
+right side of an assignment.
+Hence the two uses of <i>ref</i> in the following rule.
+</p><center>
+  j &#8712; 1..n
+  <br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;  
+    e: ref(RecordType([ (id<sub>1</sub>,  T<sub>1</sub>), (id<sub>2</sub>, T<sub>2</sub>), 
+                 ... (id<sub>n</sub>, T<sub>n</sub>) ]))
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;
+      e.id<sub>j</sub>: ref(T<sub>j</sub>)
+</center>
+For example,
+<center>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;  
+    r: ref(RecordType([ (x,  int), (b, boolean) ]))
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;
+      r.x : ref(int)
+</center>
+For a record constructor,
+its type identifier must be a record type and it gives the type of the constructed record.
+The expressions in the type constructor must match the fields of the record in the order
+in which they were declared in the record type declaration.
+Each expression must be assignment compatible with its corresponding field.
+<center>
+  <br>
+  id &#8712; dom(syms)<br>
+  syms(id) = TypeEntry(RecordType([ (id<sub>1</sub>,  T<sub>1</sub>), (id<sub>2</sub>, T<sub>2</sub>), 
+                 ... (id<sub>n</sub>, T<sub>n</sub>) ]))
+  <br>
+  &#8704; j &#8712; 1..n &nbsp; • &nbsp; &nbsp;&nbsp;
+     syms&nbsp;&nbsp;&#8866;&nbsp;&nbsp;  e<sub>j</sub> : T<sub>j</sub> 
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;
+      id{ e<sub>1</sub>, e<sub>2</sub>, ... e<sub>n</sub> } : RecordType([ (id<sub>1</sub>,  T<sub>1</sub>), (id<sub>2</sub>, T<sub>2</sub>), 
+                 ... (id<sub>n</sub>, T<sub>n</sub>) ])
+</center>
+<p>
+Assignments between records are allowed,
+provided the left and right sides of the assignment are of the same type. 
+Two types are considered equivalent if they are the same type identifier,
+or if one is a type identifier, B, 
+that is defined as equal to another type identifier, A, 
+i.e.,
+</p><ul><b>
+    type
+    <ul>A = record x: int; y: int end;<br>
+        B = A;
+    </ul>
+</b></ul>
+[This makes the implementation simpler than doing structural equivalence of records.]
+<p>
+Comparison of records is not supported.
+
+
+</p><h2>Pointers</h2>
+
+The identifier in the pointer type definition must be a type identifier.
+It can be of any type (not necessarily a record type as in the example).
+<p>
+The rule for well formedness of a <b>pointer</b> type is given below.
+</p><center>
+  syms&nbsp;&nbsp;&#8866;&nbsp;&nbsp;  typeof(t) = T 
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;  typeof(^t) = PointerType(T)
+</center>
+<p>
+To be dereferenced (using "^") an LValue, <b>p</b>, must be of type
+ref(PointerType(T)), for some type T.
+The type of the result of the pointer dereference is ref(T).
+</p><center>
+  syms&nbsp;&nbsp;&#8866;&nbsp;&nbsp;  e : ref(PointerType(T))
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp;  e^ : ref(T)
+</center>
+The identifier in a <b>new</b> expression must be a pointer type.
+Hence, for a type identifier id,
+<center>
+  id &#8712; dom(syms)
+  <br>
+  syms(id) = TypeEntry(PointerType(B))
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp; (new id) : PointerType(B)
+</center>
+<p>
+Assignment of pointer values and comparison of pointer values,
+for equality and inequality only,
+is allowed provided the types are equivalent.
+If <b>T</b> is declared as a pointer type
+(i.e., PointerType(B) for some type B) then
+the equality and inequality operators have the following additional types.
+</p><ul>
+  = : T x T &#8594; boolean<br>
+  &#8800; : T x T &#8594; boolean<br>
+</ul>
+An exception here is the special constant <b>nil</b> which is a
+pointer value that is compatible with all pointer types.
+The constant <b>nil</b> has already been defined.
+It is of the special pointer type <i>NIL_TYPE</i>,
+which is compatible with any pointer type.
+Hence for any type identifier id,
+<center>
+  id &#8712; dom(syms)
+  <br>
+  syms(id) = TypeEntry(PointerType(B))
+  <br>
+  <span style="text-decoration: underline;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><br>
+  syms &nbsp;&nbsp;&#8866;&nbsp;&nbsp; nil : PointerType(B)
+</center>
+<p>
+Two pointer types are considered equivalent if their base types are equivalent.
+e.g.,
+</p><ul><b>
+    type
+    <ul>C = ^A;
+        D = C;
+        E = ^A;
+    </ul>
+</b></ul>
+Types C, D and E are all compatible.
+
+<p> 
+Note that <i>Type.java</i> already includes record and pointer types.
+
+
+</p><h1>Dynamic Semantics</h1>
+
+<h2>Records</h2>
+
+A record must be allocated enough space to contain values for all its fields,
+either on the stack if it is a local variable,
+or 
+on the heap if it is dynamically allocated using <b>new</b>.
+<p>
+A field reference, <b>r.x</b>, acts like a variable of the type of the field
+and hence can be used on either the left or right sides of assignments.
+</p><p>
+For the record assignment 
+</p><ul><b>
+  r := p^
+</b></ul>
+all the fields of r are assigned the corresponding fields of the
+record pointed to by p.
+<p>
+Because we are copying values and not references, 
+all the fields need to be assigned
+(see the Object Code section for a way to do this simply).
+
+</p><h2>Pointers</h2>
+
+The dynamic semantics of the <b>new</b> expression and
+of accessing a pointer are conventional.
+<p>
+If <b>p</b> is of type ref(PointerType(T)) then
+a pointer dereference, <b>p^</b>, corresponds to the
+object (of type ref(T)) pointed to by the pointer <b>p</b>.
+If the value of the pointer <b>p</b> being dereferenced is <b>nil</b>
+the dereference is invalid (a run time error).
+</p><p>
+The expression <b>new List</b> dynamically allocates space on the heap
+for an object of the type pointed to by <b>List</b> and 
+returns the address of that new object.
+Objects dynamically allocated via a <b>new</b> have a life time that
+is not restricted to that of the variable via which they were
+allocated.
+For example, an object may be created within a procedure using a local
+variable within the procedure to perform the <b>new</b>.
+Provided that variable's value (the pointer to the new object) is
+assigned to a variable or field that is accessible via variables
+global to the procedure, before the procedure exits,
+the object will remain accessible.
+</p><p>
+Although we dynamically allocate objects via the <b>new</b> statement,
+we won't implement garbage collection of objects that are no longer
+accessible. 
+
+
+
+</p><h1> Object Code</h1>
+
+The PL0 compiler generates code for the Stack Machine.
+A description of the stack machine is available in
+<a href="https://learn.uq.edu.au/bbcswebdav/pid-6438721-dt-content-rid-35368994_1/courses/COMP4403S_7120_21405/publicweb/notes/Inst.pdf">Inst.pdf</a>.
+See also the file <i>StackMachine.java</i> (near the end)
+for details of the instruction set.
+
+<h2>Records</h2>
+
+To implement record assignments the stack machine includes the
+<i>LOAD_MULTI</i> and <i>STORE_MULTI</i> instructions,
+both of which take a count of the number of words to load from or store
+to an address. 
+<ul>
+<li>the source address for loading (or target address for storing) is in second top of stack, and </li>
+<li>the number of words to be loaded (or stored) is in the top of the stack.</li>
+</ul>
+
+<h2>Pointers</h2>
+
+There is an instruction, <i>ALLOC_HEAP</i>,
+which assumes that there is an integer on the top of the stack that
+represents the size of the object it is to allocate (new).
+It pops that value from the stack and replaces it with the absolute address of
+a newly allocated object of that size.
+The stack machine does not support disposing objects or garbage collection.
+<p>
+If there is insufficient space then <i>ALLOC_HEAP</i> will fail 
+with a "memory overflow" message.
+In the implementation of the stack machine there is a single array
+representing the whole of memory:
+the stack (the bottom end of the array) and
+the heap of dynamically allocated objects (the top end).
+If either pushing onto the stack reaches the lower limit of the heap,
+or allocating on the heap reaches the top of the stack,
+then there is insufficient memory and the program aborts
+(with the same error message in both cases).
+</p><p>
+As the instructions <i>LOAD_FRAME</i> and <i>STORE_FRAME</i> expect
+an address that is an offset from the frame pointer for the current (procedure) scope,
+you will need to use the instruction <i>TO_LOCAL</i> which converts an
+absolute address (the pointer value) into an address relative to the
+current frame pointer.
+</p><p>
+The <i>STOP</i> instruction with a parameter of <i>StackMachine.NIL_POINTER</i>
+indicates a nil pointer dereference error.
+
+</p><h1>Tests</h1>
+
+Some tests are available in the <b>test-pgm</b> directory (in a2.zip),
+and can be used to help you to debug your code. All of the tests can
+be run together using the <b>Test_LALR</b> configuration. You can also
+individually run a test using <b>PL0_LALR</b> on a selected PL0
+program. The test cases of the form
+<b>test-base*.pl0</b> are useful for regression testing, to make sure
+that you haven't broken any existing functionality in the compiler, and
+the other tests can help you find bugs in the new compiler
+features.
+
+<h1>Student Misconduct</h1>
+
+Students are reminded of the University's policy on student
+misconduct, including plagiarism.  See the course profile and the
+School web page
+<a href="http://www.itee.uq.edu.au/itee-student-misconduct-including-plagiarism">
+http://www.itee.uq.edu.au/itee-student-misconduct-including-plagiarism</a>
+<p>
+You are expected to protect your files so that they are not readable by other users.
+</p><p>
+Your assignment is expected to be your own individual work and must
+not include code copied from other students, current or past.  You are
+also reminded not to post your (partial) solutions to assignments to
+any place accessible by others (before or after the assignment
+deadline), including the course discussion board or emailing to other
+students.  If you need that sort of help consult the lecturer and/or
+tutor.  Note that course discussion board allows private posts to the
+instructors.
+</p><p>
+This assignment compiler is provided solely for the purposes of doing
+this assignment and your solutions must never be shared, especially
+publicly, even after completion of the course.  Such publication would
+be considered both student misconduct and a breach of copyright.
+
+</p><h1>Late Submission</h1>
+
+<p>See section 5.3 of the course profile for details.</p>
+
+<p>
+If there are documented medical or exceptional circumstances that will
+affect your ability to complete the assignment by the due date, then
+you can apply for an extension. Extensions to non-exam assignments
+must be requested via <a href="https://my.uq.edu.au/">my.UQ</a>. You
+can find instructions on how to submit your
+request <a href="https://my.uq.edu.au/information-and-services/manage-my-program/exams-and-assessment/applying-extension">online</a>.
+</p>
+
+<p>
+If the assignment is submitted after the deadline, without an approved
+extension, a late penalty will apply. The late penalty shall be 10% of
+the maximum possible mark for the assessment item will be deducted per
+calendar day (or part thereof), up to a maximum of seven (7)
+days. After seven days, no marks will be awarded for the item. A day
+is considered to be a 24 hour block from the assessment item due
+time. Negative marks will not be awarded.
+</p>
+
+<!--
+A penalty of 5% of the maximum mark for an assignment will be deducted for each day or part thereof late up to a limit of 7 days,
+after which time assignments will not be accepted for assessment unless you have been granted an extension.
+<p>
+As we plan to hand back assignments a week or two after submission,
+requests for extension will not be accepted more than one week late,
+unless there are exceptional circumstances. 
+<p>
+Requests for extensions should be accompanied by suitable documentation 
+(see the course profile for details).
+<p>
+Personal hardware or computer failures are not grounds for extension.
+Assignments must be backed up on the university system.
+-->
+
+<h1>Submission</h1>
+<p>
+Please keep the length of lines in your files below 100 characters,
+so that we can print them sensibly.
+You should avoid using tabs or set your tabs stops to 4 spaces so that
+when we print them 
+(with tab stops set to 4 spaces) 
+they will print sensibly.
+Don't forget to remove any code generating debugging output
+and rogue external imports before submission.
+</p><p>
+You must submit your completed assignment electronically through 
+the assessment section of 
+the course <a href="https://learn.uq.edu.au/">BlackBoard site</a>
+(the BlackBoard Assessment page rather than the course web pages).
+</p><p>
+You need to submit the following list of individual files, not a .zip file
+(note that file names are case-sensitive) for evaluation and marking. 
+</p><ul>
+  <li>PL0.cup</li>
+  <li>StaticChecker.java</li>
+  <li>CodeGenerator.java</li>
+  <li>ExpNode.java</li>
+  <li>ExpTransform.java</li>
+</ul>
+You can submit your assignment multiple times,
+but only the last copy submitted will be retained for marking.
+
+
+<h1>Assessment</h1>
+<p>
+The assignment is marked out of a total of 20 marks.
+<br>
+Marks will be allocated as follows:
+</p><ul>
+   <li>6 Syntax analysis and tree building
+   </li><li>9 Static semantics checking
+   </li><li>5 Code generation
+</li></ul>
+Marks will be awarded for the correctness of the changes to each category.
+Readability and modular structure will also be criteria.
+For readability, we expect that you follow good software engineering practice,
+such as appropriate choices of variable names,
+consistent indentation, appropriate comments where needed, etc.
+For modularity we expect you introduce new methods where it makes sense to help structure the program
+and to avoid unnecessary duplication of code.
+Use of generic Java utility interfaces (like Set, Map, List, Queue, ...) and
+their implementations (like HashSet, ..., TreeMap, ..., LinkedList, ...)
+is encouraged.
+We expect you to produce well structured programs that are not unnecessarily complex,
+both structurally
+(e.g. complex control flow that is hard to follow),
+and in terms of execution time and space requirements,
+(e.g. an O(n) algorithm is preferred to an O(n<sup>2</sup>) algorithm,
+and a O(log n) algorithm is even better).
+
+<p>
+We will not be concerned with the quality of syntactic error recovery 
+because the parser generator <i>CUP</i> takes care of that for the most part,
+but you must handle semantic errors appropriately,
+including handling the situation when there is a syntax error,
+i.e., your compiler should not crash because of a syntax error.
+</p><p>
+Your assignment files will be compiled in the context of the remaining
+assignment files and put through a sequence of tests.
+The total mark for this assignment will be limited by the
+overall success of the development in the following way:
+</p><ul>
+   <li>The program submitted does not compile: Maximum 10/20.</li>
+   <li>The program submitted will not correctly handle any test case with 
+       the new facilities: Maximum 13/20.</li>
+</ul>
+You are not required to correct any bugs that may exist in the original compiler.
+However, we would appreciate being informed of any such bugs
+that you detect, so that we can correct them,
+or any improvements to the compiler you might like to suggest.
+<p>
+</p><hr>
+
+<!--
+<p>
+<FORM><INPUT TYPE="button" VALUE="Back" onClick="history.go(-1);return true;"></FORM>
+-->
+
+
+
+</body></html>
